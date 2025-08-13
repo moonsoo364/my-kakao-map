@@ -38,7 +38,7 @@ export default {
       const script = document.createElement('script');
       // 리버스 프록시는 정상 동작 안함
       // script.src = `/kakao/map?appkey=${this.appKey}&autoload=false`;
-      script.src =  `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${this.appKey}&autoload=false`
+      script.src =  `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${this.appKey}&autoload=false&libraries=services`
       script.async = true;
       script.onload = () => {
         this.kakaoMap = window.kakao.maps;
@@ -55,6 +55,7 @@ export default {
     }
   },
   methods: {
+    //초기 지도 로드 메서드
     loadMap() {
       // console.log(this.kakaoMap);
       const container = document.getElementById('map');
@@ -65,7 +66,9 @@ export default {
       this.map = new this.kakaoMap.Map(container, options);
       // this.markPoint();
       this.markWithImg();
+      this.getAddressFromCoords(); 
     },
+    //지도 축적 단계별로 변경
     updateLevel() {
       if (this.map) {
         this.map.setLevel(this.level);
@@ -126,22 +129,8 @@ export default {
       });
 
       this.map.setCenter(locPosition);
-      this.tryGetAddress();
     },
-    //현재 주소 정보 가져오기
-    tryGetAddress(retryCount = 0) {
-      if (this.kakaoMap.services) {
-        this.getAddressFromCoords();
-      } else {
-        if (retryCount < 5) {
-          setTimeout(() => {
-            this.tryGetAddress(retryCount + 1);
-          }, 200);
-        } else {
-          console.error('kakao.maps.services가 아직 준비되지 않았습니다.');
-        }
-      }
-  },
+   //현재 주소 정보 가져오기
   getAddressFromCoords() {
     const geocoder = new this.kakaoMap.services.Geocoder();
     const coord = new this.kakaoMap.LatLng(this.pos.latitude, this.pos.longitude);
