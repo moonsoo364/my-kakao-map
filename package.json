@@ -1,5 +1,5 @@
 {
-  "name": "my-vue2-project",
+  "name": "my-kakao-map",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "core-js": "^3.8.3",
+    "dotenv": "^17.2.1",
     "vue": "^2.6.14"
   },
   "devDependencies": {
