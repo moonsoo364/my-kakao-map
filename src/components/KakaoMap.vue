@@ -3,7 +3,7 @@
     <select v-model="level" @change="updateLevel">
       <option v-for="l in levels" :key="l" :value="l">Level {{ l }}</option>
     </select>
-    <div id="map" style="width:100%; height:400px;"></div>
+    <div id="map" ref="mapArea" style="width:100%; height:400px;"></div>
     <!-- 주소 표시 영역 -->
     <div style="margin-top:10px;">
       <div>도로명 주소: {{ roadAddress }}</div>
@@ -31,40 +31,43 @@ export default {
       marker: null,
       address: '',        // 지번 주소
       roadAddress: '',    // 도로명 주소
+      latLngInfo: {},
     };
   },
   mounted() {
-    if (!window.kakao) {
-      const script = document.createElement('script');
-      // 리버스 프록시는 정상 동작 안함
-      // script.src = `/kakao/map?appkey=${this.appKey}&autoload=false`;
-      script.src =  `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${this.appKey}&autoload=false&libraries=services`
-      script.async = true;
-      script.onload = () => {
-        this.kakaoMap = window.kakao.maps;
-        this.kakaoMap.load(() => {
-          this.loadMap();
-        });
-      };
-      document.head.appendChild(script);
-    } else {
+    this.loadMapScript();
+  },
+  methods: {
+      loadMapScript(){
+        if (!window.kakao) {
+          const script = document.createElement('script');
+          script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${this.appKey}&autoload=false&libraries=services`
+          script.async = true;
+          script.onload = () => {
+            this.beforeLoadMap();
+          };
+          document.head.appendChild(script);
+        } else {
+          this.beforeLoadMap();
+        }
+    },
+    beforeLoadMap(){
       this.kakaoMap = window.kakao.maps;
       this.kakaoMap.load(() => {
         this.loadMap();
       });
-    }
-  },
-  methods: {
+    },
     //초기 지도 로드 메서드
     loadMap() {
-      // console.log(this.kakaoMap);
-      const container = document.getElementById('map');
+      const container = this.$refs.mapArea;
+      this.setLatLng();
       const options = {
-        center: new this.kakaoMap.LatLng(this.pos.latitude, this.pos.longitude),
+        center: this.latLngInfo,
         level: this.level
       };
       this.map = new this.kakaoMap.Map(container, options);
-      // this.markPoint();
+      console.log(this.map);
+      // this.initLatLng();
       this.markWithImg();
       this.getAddressFromCoords(); 
     },
@@ -111,41 +114,38 @@ export default {
       if (this.marker) {
         this.marker.setMap(null);
       }
-      const lat = this.pos.latitude;
-      const lng = this.pos.longitude;
-      // 해당 위도, 경도 위치에 마커 표시
-      const locPosition = new this.kakaoMap.LatLng(lat,lng);
 
       const imageSrc = markerImg;
       const imageSize = new this.kakaoMap.Size(58,70)
       const imageOption = { offset: new this.kakaoMap.Point(29, 70) }; // 가로 절반(29), 세로 끝(70)
       
       const markerImage = new this.kakaoMap.MarkerImage(imageSrc, imageSize, imageOption);
-
       this.marker = new this.kakaoMap.Marker({
         map: this.map,
-        position: locPosition,
+        position: this.latLngInfo,
         image: markerImage
       });
 
-      this.map.setCenter(locPosition);
+      this.map.setCenter(this.latLngInfo);
     },
-   //현재 주소 정보 가져오기
-  getAddressFromCoords() {
-    const geocoder = new this.kakaoMap.services.Geocoder();
-    const coord = new this.kakaoMap.LatLng(this.pos.latitude, this.pos.longitude);
+    //현재 주소 정보 가져오기
+    getAddressFromCoords() {
+      const geocoder = new this.kakaoMap.services.Geocoder();
 
-    geocoder.coord2Address(coord.getLng(), coord.getLat(), (result, status) => {
-      if (status === this.kakaoMap.services.Status.OK) {
-        const roadAddr = result[0].road_address;
-        const addr = result[0].address;
-        this.roadAddress = roadAddr ? roadAddr.address_name : '도로명 주소가 없습니다.';
-        this.address = addr ? addr.address_name : '지번 주소가 없습니다.';
-        console.log('도로명 주소:', roadAddr);
-        console.log('지번 주소:', addr);
-      }
-    });
-  },
+      geocoder.coord2Address(this.latLngInfo.getLng(), this.latLngInfo.getLat(), (result, status) => {
+        if (status === this.kakaoMap.services.Status.OK) {
+          const roadAddr = result[0].road_address;
+          const addr = result[0].address;
+          this.roadAddress = roadAddr ? roadAddr.address_name : '도로명 주소가 없습니다.';
+          this.address = addr ? addr.address_name : '지번 주소가 없습니다.';
+          // console.log('도로명 주소:', roadAddr);
+          // console.log('지번 주소:', addr);
+        }
+      });
+    },
+    setLatLng() {
+      this.latLngInfo = new this.kakaoMap.LatLng(this.pos.latitude, this.pos.longitude);
+    },
   }
 };
 </script>
