@@ -13,25 +13,32 @@
 </template>
 
 <script>
-import markerImg from '@/assets/map/ic-marker-user.png';
+import startImg from '@/assets/map/ic-marker-user.png';
+import endImg from '@/assets/map/ic-marker-store.png';
 
 export default {
   name: 'KakaoMap',
   data() {
     return {
       appKey: process.env.VUE_APP_API_KEY,
-      pos: {
-        latitude: 37.544761,
-        longitude: 126.950337
+      startPos: {// 서울 시청 좌표 
+        latitude: 37.56669807755658,
+        longitude: 126.97873152807972
+      },
+      endPos: {// 영등포 구청 좌표
+        latitude: 37.52638881144293,
+        longitude: 126.8962885955753
       },
       kakaoMap: null,
       map: null, 
       level: 3,          
       levels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      marker: null,
+      startMarker: null,
+      endMarker: null,
       address: '',        // 지번 주소
       roadAddress: '',    // 도로명 주소
-      latLngInfo: {},
+      startLatLng: {},
+      endLatLng: {},
     };
   },
   mounted() {
@@ -60,22 +67,70 @@ export default {
     //초기 지도 로드 메서드
     loadMap() {
       const container = this.$refs.mapArea;
-      this.setLatLng();
+      this.startLatLng = this.setLatLng(this.startPos)
+      this.endLatLng = this.setLatLng(this.endPos)
       const options = {
-        center: this.latLngInfo,
+        center: this.startLatLng,
         level: this.level
       };
       this.map = new this.kakaoMap.Map(container, options);
-      console.log(this.map);
       // this.initLatLng();
-      this.markWithImg();
+      this.markStart();
+      this.markEnd();
+      this.boundStartToEnd();
       this.getAddressFromCoords(); 
     },
-    //지도 축적 단계별로 변경
-    updateLevel() {
-      if (this.map) {
-        this.map.setLevel(this.level);
+     // 카카오 맵에서 타깃 표시
+    markTarget (target) {
+      if (target.marker) {
+        target.marker.setMap(null)
       }
+
+      const imageSrc = target.image
+      const imageSize = new this.kakaoMap.Size(58, 70)
+      const imageOption = { offset: new this.kakaoMap.Point(29, 70) } // 가로 절반(29), 세로 끝(70)
+
+      const markerImage = new this.kakaoMap.MarkerImage(imageSrc, imageSize, imageOption)
+      target.marker = new this.kakaoMap.Marker({
+        map: this.map,
+        position: target.position,
+        image: markerImage
+      })
+    },
+    // 시작 위치 이미지로 마커 표시
+    markStart(){
+      const target = {
+        marker: this.startMarker,
+        position: this.startLatLng,
+        image: startImg
+      }
+      console.log(target);
+      this.markTarget(target)
+      // this.map.setCenter(this.startLatLng);
+    },
+    // 종료 위치 이미지로 마커 표시
+    markEnd (){
+      const target = {
+        marker: this.endMarker,
+        position: this.endLatLng,
+        image: endImg
+      }
+      this.markTarget(target)
+      // this.map.setCenter(this.endLatLng);
+    },
+    //현재 주소 정보 가져오기
+    getAddressFromCoords() {
+      const geocoder = new this.kakaoMap.services.Geocoder();
+      geocoder.coord2Address(this.startLatLng.getLng(), this.startLatLng.getLat(), (result, status) => {
+        if (status === this.kakaoMap.services.Status.OK) {
+          const roadAddr = result[0].road_address;
+          const addr = result[0].address;
+          this.roadAddress = roadAddr ? roadAddr.address_name : '도로명 주소가 없습니다.';
+          this.address = addr ? addr.address_name : '지번 주소가 없습니다.';
+          // console.log('도로명 주소:', roadAddr);
+          // console.log('지번 주소:', addr);
+        }
+      });
     },
     //카카오 기본 마커
     markPoint(){
@@ -85,8 +140,8 @@ export default {
             position;
             // const lat = position.coords.latitude;
             // const lng = position.coords.longitude;
-            const lat = this.pos.latitude;
-            const lng = this.pos.longitude;
+            const lat = this.startPos.latitude;
+            const lng = this.startPos.longitude;
             const locPosition = new this.kakaoMap.LatLng(lat, lng);
 
             const marker = new this.kakaoMap.Marker({
@@ -107,44 +162,22 @@ export default {
         );
       }
     },
-    // 커스텀 이미지 마커
-    markWithImg(){
-
-      // 기존에 마커가 있으면 null로 초기화
-      if (this.marker) {
-        this.marker.setMap(null);
+    // 시작 위치와 종료 위치 마커 표시
+    boundStartToEnd () {
+      const bounds = new this.kakaoMap.LatLngBounds()
+      bounds.extend(this.startLatLng)
+      bounds.extend(this.endLatLng)
+      this.map.setBounds(bounds)
+    },
+    // 위, 경도 값으로 로 카카오 맵 위경도 객체 생성
+    setLatLng(latLat) {
+      return new this.kakaoMap.LatLng(latLat.latitude, latLat.longitude);
+    },
+        //지도 축적 단계별로 변경
+    updateLevel() {
+      if (this.map) {
+        this.map.setLevel(this.level);
       }
-
-      const imageSrc = markerImg;
-      const imageSize = new this.kakaoMap.Size(58,70)
-      const imageOption = { offset: new this.kakaoMap.Point(29, 70) }; // 가로 절반(29), 세로 끝(70)
-      
-      const markerImage = new this.kakaoMap.MarkerImage(imageSrc, imageSize, imageOption);
-      this.marker = new this.kakaoMap.Marker({
-        map: this.map,
-        position: this.latLngInfo,
-        image: markerImage
-      });
-
-      this.map.setCenter(this.latLngInfo);
-    },
-    //현재 주소 정보 가져오기
-    getAddressFromCoords() {
-      const geocoder = new this.kakaoMap.services.Geocoder();
-
-      geocoder.coord2Address(this.latLngInfo.getLng(), this.latLngInfo.getLat(), (result, status) => {
-        if (status === this.kakaoMap.services.Status.OK) {
-          const roadAddr = result[0].road_address;
-          const addr = result[0].address;
-          this.roadAddress = roadAddr ? roadAddr.address_name : '도로명 주소가 없습니다.';
-          this.address = addr ? addr.address_name : '지번 주소가 없습니다.';
-          // console.log('도로명 주소:', roadAddr);
-          // console.log('지번 주소:', addr);
-        }
-      });
-    },
-    setLatLng() {
-      this.latLngInfo = new this.kakaoMap.LatLng(this.pos.latitude, this.pos.longitude);
     },
   }
 };
