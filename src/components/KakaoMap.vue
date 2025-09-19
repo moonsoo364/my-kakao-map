@@ -58,11 +58,10 @@ export default {
         // 줌 변경 이벤트
         const setZoomLimitOnce = () => {
           mapEvent.addListener(this.map, 'zoom_changed', () => {
-            // console.log('## zoom_changed')
             if (this.map.getLevel() > initLevel && !this.isDragEnd) {
               console.log('## 초기 레벨 초과, 원래 위치로 이동')
-              // this.map.setLevel(initLevel)
-              this.map.setBounds(this.init.bounds)
+              // 부드럽게 애니메이션 이동
+              this.map.panTo(this.init.bounds)
             }
           })
           mapEvent.removeListener(this.map, 'idle', setZoomLimitOnce)
@@ -80,7 +79,7 @@ export default {
              * isDragEnd 변수로 zoom_changed 이벤트 동작을 토글한다.
              * */
             this.isDragEnd = true
-            this.map.setBounds(this.init.bounds)
+            this.map.panTo(this.init.bounds)
             this.isDragEnd = false
           }
         })
