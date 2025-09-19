@@ -54,11 +54,9 @@ export default {
       setMap () {
         // 초기 진입한 영역을 축소 level의 최소값으로 지정
         const initLevel = this.map.getLevel()
-        // 줌아웃
         const mapEvent = window.kakao.maps.event
-        this.mapEvent = mapEvent
+        // 줌 변경 이벤트
         const setZoomLimitOnce = () => {
-          // this.map.setMaxBounds(bounds)
           mapEvent.addListener(this.map, 'zoom_changed', () => {
             // console.log('## zoom_changed')
             if (this.map.getLevel() > initLevel && !this.isDragEnd) {
@@ -78,7 +76,7 @@ export default {
             console.log('초기 영역을 벗어남 → 원래 위치로 이동')
             /**
              * 초기 영역 벗어나고 setBounds 호출 되면 zoom_changed 이벤트가 발생하면서
-             * boundUserBetweenStore가 발생하면서 setBounds를 2번 호출함 이를 방지하기 위해
+             * setBounds를 2번 호출함 이를 방지하기 위해
              * isDragEnd 변수로 zoom_changed 이벤트 동작을 토글한다.
              * */
             this.isDragEnd = true
