@@ -54,6 +54,7 @@ export default {
     limitMapArea () {
       // 다렌 앞바다 (북서쪽)
       const sw = this.createLatLng({ latitude: 32.73170182008234, longitude: 121.15431226284126 })
+      // 도쿠시마 앞바다(남동쪽)
       const ne = this.createLatLng({ latitude: 39.242169322233444, longitude: 133.69026825031926 })
 
       const limitBounds = new window.kakao.maps.LatLngBounds(sw, ne)
