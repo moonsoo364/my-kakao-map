@@ -50,6 +50,32 @@ export default {
     this.loadMapScript();
   },
   methods: {
+  // 최대 지도 영역 제한
+    limitMapArea () {
+      // 다렌 앞바다 (북서쪽)
+      const sw = this.createLatLng({ latitude: 32.73170182008234, longitude: 121.15431226284126 })
+      const ne = this.createLatLng({ latitude: 39.242169322233444, longitude: 133.69026825031926 })
+
+      const limitBounds = new window.kakao.maps.LatLngBounds(sw, ne)
+
+      // 남서쪽 좌표
+      const swLatLng = limitBounds.getSouthWest()
+      console.log('SW:', swLatLng.getLat(), swLatLng.getLng())
+
+      // 북동쪽 좌표
+      const neLatLng = limitBounds.getNorthEast()
+      console.log('NE:', neLatLng.getLat(), neLatLng.getLng())
+      const map = this.map
+
+      window.kakao.maps.event.addListener(map, 'dragend', () => {
+        const center = map.getCenter()
+        console.log(center)
+        if (!limitBounds.contain(center)) {
+          console.log('지도 최대 영역 범위 벗어남 → 원래 위치로 이동')
+          this.map.panTo(this.init.bounds)
+        }
+      })
+    },
     // 지도 설정
       setMap () {
         // 초기 진입한 영역을 축소 level의 최소값으로 지정
@@ -111,8 +137,8 @@ export default {
     //초기 지도 로드 메서드
     loadMap() {
       const container = this.$refs.mapArea;
-      this.startLatLng = this.setLatLng(this.startPos)
-      this.endLatLng = this.setLatLng(this.endPos)
+      this.startLatLng = this.createLatLng(this.startPos)
+      this.endLatLng = this.createLatLng(this.endPos)
 
       const options = {
         center: this.startLatLng,
@@ -129,7 +155,8 @@ export default {
       this.init.mapCenter = this.map.getCenter()
 
       this.getAddressFromCoords();
-      this.setMap()
+      // this.setMap()
+      this.limitMapArea()
     },
      // 카카오 맵에서 타깃 표시
     markTarget (target) {
@@ -220,7 +247,7 @@ export default {
       this.map.setBounds(bounds)
     },
     // 위, 경도 값으로 로 카카오 맵 위경도 객체 생성
-    setLatLng(latLat) {
+    createLatLng(latLat) {
       return new window.kakao.maps.LatLng(latLat.latitude, latLat.longitude);
     },
         //지도 축적 단계별로 변경
